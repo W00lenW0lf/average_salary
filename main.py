@@ -11,12 +11,18 @@ def download_hh_vacanies(language):
     found = 0
     while True:
         params = {
-            "text": language,  # ключевые слова поиска, используем названия языков программирования
-            "per_page": 100,  # количество вакансий на странице
-            "page": page,  # номер страницы для их перебора
-            "area": 113,  # где ищем вакансии,113 - Москва
-            "only_with_salary": "true",  # берем только вакансии с указанной зарплатой
-            "period": "30"  # за какой период собираем вакансии, 30 дней по умолчанию
+            "text": language,
+            # ключевые слова поиска - названия языков программирования
+            "per_page": 100,
+            # количество вакансий на странице
+            "page": page,
+            # номер страницы для их перебора
+            "area": 113,
+            # где ищем вакансии,113 - Москва
+            "only_with_salary": "true",
+            # берем только вакансии с указанной зарплатой
+            "period": "30"
+            # за какой период собираем вакансии, 30 дней по умолчанию
         }
         response = requests.get(url, params=params)
         response.raise_for_status()
@@ -43,11 +49,16 @@ def download_superjob_vacanies(language):
     found = 0
     while True:
         params = {
-            "catalogues": "Разработка, программирование",  # каталог, в котором ищем вакансии
-            "keyword": language,  # ключевые слова поиска, используем названия языков программирования
-            "town": 4,  # Москва
-            "count": 50,  # Количество вакансий на страницу
-            "page": page  # номер страницы для их перебора
+            "catalogues": "Разработка, программирование",
+            # каталог, в котором ищем вакансии
+            "keyword": language,
+            # ключевые слова поиска - названия языков программирования
+            "town": 4,
+            # Москва
+            "count": 50,
+            # Количество вакансий на страницу
+            "page": page
+            # номер страницы для их перебора
         }
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
@@ -88,17 +99,16 @@ def predict_rub_salary_for_superJob(vacancy):
     return calculate_average_salary(min_salary, max_salary)
 
 
-def make_table(title, rows):
+def make_table(title, table_rows):
     header = ['Язык программирования', 'Вакансий найдено',
               'Вакансий обработано', 'Средняя зарплата']
 
-    table_data = [[title], header] + rows
+    table_data = [[title], header] + table_rows
     return AsciiTable(table_data).table
 
 
-def collect_salary_statistics(source, languages):
-    cite, download_function, predict_function = source
-    rows = []
+def collect_salary_statistics(download_function, predict_function, languages):
+    table_rows = []
     for language in languages:
         vacancies_quantity, all_vacancies = download_function(language)
         salaries = []
@@ -107,19 +117,19 @@ def collect_salary_statistics(source, languages):
             if predicted_salary:
                 salaries.append(predicted_salary)
         vacancies_processed = len(salaries)
-        average_salary = int(sum(salaries) / vacancies_processed) if salaries else 0
-        rows.append([language, vacancies_quantity, vacancies_processed, average_salary])
-    return (rows)
+        average_salary = int(sum(salaries) / vacancies_processed) \
+            if salaries else 0
+        table_rows.append([language, vacancies_quantity,
+                     vacancies_processed, average_salary])
+    return table_rows
 
 
 if __name__ == '__main__':
     load_dotenv()
     languages = ("java", "python", "javascript")
-    sources = [
-        ("SuperJob Moscow", download_superjob_vacanies, predict_rub_salary_for_superJob),
-        ("Headhunter Moscow", download_hh_vacanies, predict_rub_salary_for_hh)
-    ]
-    for source in sources:
-        rows = collect_salary_statistics(source, languages)
-        cite = source[0]
-        print(make_table(cite, rows))
+    table_rows = collect_salary_statistics(download_superjob_vacanies,
+                                     predict_rub_salary_for_superJob, languages)
+    print(make_table("SuperJob Moscow", table_rows))
+    table_rows = collect_salary_statistics(download_hh_vacanies,
+                                     predict_rub_salary_for_hh, languages)
+    print(make_table("SuperJob Moscow", table_rows))
